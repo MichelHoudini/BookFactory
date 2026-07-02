@@ -1,0 +1,11 @@
+---
+description: General coding constraints
+alwaysApply: true
+---
+
+- Give each module one responsibility.
+- Keep files under approximately 250 lines and functions under approximately 40 lines; split them when they grow beyond those limits.
+- Prefer explicit code and composition over magic and inheritance.
+- Do not duplicate behavior, use unexplained TODOs, or combine parsing, transformation, and file writing in one module.
+- Keep business logic independent of the CLI and other presentation layers.
+- Add a regression test for every bug fix.

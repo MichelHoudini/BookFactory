@@ -1,0 +1,11 @@
+---
+description: Engineering completion standard
+alwaysApply: true
+---
+
+- Preserve architectural boundaries while delivering the smallest complete milestone.
+- Make errors explicit and actionable; do not silently discard failed work.
+- Test observable behavior rather than implementation details.
+- Keep default tests deterministic and independent of live provider credentials.
+- Update documentation when an intentional design decision changes the architecture or a public contract.
+- Surface unresolved architectural conflicts instead of encoding an arbitrary choice in code.

@@ -1,0 +1,12 @@
+---
+description: Architecture authority and dependency boundaries
+alwaysApply: true
+---
+
+`docs/ARCHITECTURE.md` is the single source of truth for the system architecture.
+
+- If code and the architecture disagree, treat the code as wrong until an intentional architecture decision updates the document.
+- Dependencies point inward: core must not import adapters, CLI code, or provider SDKs.
+- Keep the canonical Document at the center of processing.
+- Keep stages, ports, and adapters replaceable and limited to one responsibility.
+- Never sacrifice the documented architecture for implementation speed.

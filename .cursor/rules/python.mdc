@@ -1,0 +1,11 @@
+---
+description: Python implementation standards
+alwaysApply: true
+---
+
+- Target Python 3.14.
+- Add type hints throughout production code.
+- Use dataclasses for domain objects and `pathlib` for filesystem paths.
+- Use the `logging` module; reserve `print()` for CLI user output.
+- Use meaningful exceptions and structured logging without exposing secrets or full book text at INFO level.
+- Avoid global mutable state.

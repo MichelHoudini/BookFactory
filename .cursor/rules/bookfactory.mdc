@@ -1,0 +1,13 @@
+---
+description: Book Factory project principles
+alwaysApply: true
+---
+
+Book Factory is a document automation engine, not a translator or provider wrapper.
+
+- Translation is one pipeline and has no special status in the engine.
+- All meaningful processing operates on the canonical Document model.
+- Never hardcode prompts or secrets.
+- Never mix CLI or UI concerns with business logic.
+- Readers, parsers, chunkers, providers, validators, exporters, caches, and prompt loaders must remain replaceable.
+- Prefer maintainability and clarity over speed and cleverness.

@@ -1,0 +1,24 @@
+---
+description: Quality gate
+alwaysApply: true
+---
+
+Before considering a task complete,
+verify:
+
+- readability
+
+- modularity
+
+- error handling
+
+- logging
+
+- documentation
+
+- typing
+
+- future extensibility
+
+If any of these are weak,
+improve them before finishing.

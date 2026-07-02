@@ -1,0 +1,12 @@
+---
+description: Define contracts before implementations
+alwaysApply: true
+---
+
+Design the interface before writing its implementation.
+
+- Define narrow ports using domain types.
+- Keep provider-specific details out of core contracts.
+- Separate pure behavior from I/O.
+- Do not introduce an abstraction until at least two concrete use cases require it.
+- Verify the contract preserves replaceability without creating a god interface.

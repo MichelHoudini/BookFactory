@@ -1,0 +1,10 @@
+---
+description: Evaluate assumptions and trade-offs
+alwaysApply: true
+---
+
+- Do not assume existing code or a proposed approach is correct.
+- Compare behavior against `docs/ARCHITECTURE.md` and the relevant contract.
+- Identify weak assumptions, edge cases, and failure modes before implementation.
+- Propose a better alternative when warranted and state its trade-offs clearly.
+- Do not add speculative abstractions for unproven future needs.
