@@ -1,0 +1,21 @@
+Goal
+
+Create the first LLMClient implementation.
+
+Responsibilities
+
+- Read API key from environment.
+- Load prompt using PromptRegistry.
+- Send one request to OpenAI.
+- Return plain text.
+- Raise clear exceptions.
+
+Out of scope
+
+- Translation
+- Retry
+- Cache
+- Cost tracking
+- Streaming
+- Multiple providers
+- JSON output

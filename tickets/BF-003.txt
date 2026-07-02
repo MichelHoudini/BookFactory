@@ -1,0 +1,71 @@
+# BF-003 — Prompt Registry
+
+## Goal
+
+Implement a Prompt Registry capable of loading prompt templates from the prompts directory.
+
+The registry should allow the rest of the application to request prompts by name without knowing where they are stored.
+
+---
+
+## Input
+
+Markdown files located in:
+
+prompts/
+
+Example:
+
+prompts/translate.md
+
+---
+
+## Responsibilities
+
+Implement:
+
+- Load a prompt by name.
+- Return the prompt text as a string.
+- Raise a clear exception if the prompt does not exist.
+- Cache loaded prompts in memory for the lifetime of the process.
+- Keep the implementation provider-independent.
+
+---
+
+## Example
+
+registry.load("translate")
+
+↓
+
+returns
+
+"The translation prompt..."
+
+---
+
+## Out of Scope
+
+Do NOT implement:
+
+- OpenAI
+- Translation
+- Variable substitution
+- Template rendering
+- YAML metadata
+- Prompt versioning
+- Prompt validation
+
+---
+
+## Acceptance Criteria
+
+The registry successfully loads Markdown prompts.
+
+Repeated calls should not reread the file from disk.
+
+Missing prompts produce a clear error.
+
+The implementation follows PROJECT.md and docs/ARCHITECTURE.md.
+
+Only the minimum functionality required for BF-003 is implemented.
