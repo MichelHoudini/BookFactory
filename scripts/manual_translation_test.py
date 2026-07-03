@@ -14,6 +14,7 @@ from bookfactory.prompts.registry import PromptRegistry
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 INPUT_PATH = PROJECT_ROOT / "input" / "book.html"
+OUTPUT_PATH = PROJECT_ROOT / "output" / "translated_preview.txt"
 PROMPT_DIRECTORY = PROJECT_ROOT / "prompts"
 
 
@@ -34,6 +35,8 @@ def main() -> None:
 
     print(f"Original text:\n{original_text}")
     print(f"\nTranslated text:\n{translated_text}")
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text(translated_text, encoding="utf-8")
     print(f"\nElapsed time:\n{elapsed_seconds:.2f} seconds")
 
 
