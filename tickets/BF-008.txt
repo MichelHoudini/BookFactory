@@ -1,0 +1,65 @@
+# BF-008 — EPUB Export
+
+## Goal
+
+Export a translated Document as a valid EPUB.
+
+This is the final milestone for the Book Factory v1.
+
+---
+
+## Responsibilities
+
+Implement:
+
+- Add an EPUB exporter adapter.
+- Create a valid EPUB using EbookLib.
+- Preserve:
+  - title
+  - author
+  - section order
+  - headings
+  - paragraphs
+- Generate one XHTML file per Section.
+- Build the spine.
+- Build the table of contents.
+- Write translated.epub.
+
+---
+
+## Reuse
+
+Reuse the existing canonical Document model.
+
+Do not rebuild the document architecture.
+
+The exporter consumes the existing Document.
+
+---
+
+## Out of Scope
+
+Do NOT implement:
+
+- CSS styling
+- Custom fonts
+- Images
+- Footnotes
+- Hyperlinks
+- Advanced TOC
+- Cover generation
+- Metadata beyond title and author
+
+---
+
+## Acceptance Criteria
+
+Running the application with a translated Document produces a valid EPUB.
+
+The EPUB opens correctly in Apple Books, Calibre and Kindle Previewer.
+
+Sections remain in order.
+
+Headings remain headings.
+
+Paragraphs remain paragraphs.

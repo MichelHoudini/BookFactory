@@ -3,6 +3,7 @@ import pytest
 from bookfactory.core.document import Block, BlockKind, Book, Document, Section
 from bookfactory.core.translation_unit import (
     TranslationUnit,
+    build_translation_unit_text,
     count_words,
     generate_translation_units,
 )
@@ -73,3 +74,19 @@ def test_rejects_non_positive_target() -> None:
 def test_counts_whitespace_separated_words() -> None:
     assert count_words(" one\n two\tthree ") == 3
 
+
+def test_builds_translation_text_in_unit_order() -> None:
+    document = _document((_block(1, 2), _block(2, 3), _block(3, 1)))
+    unit = TranslationUnit(("block-000003", "block-000001"), 3)
+
+    text = build_translation_unit_text(document, unit)
+
+    assert text == "word-0\n\nword-0 word-1"
+
+
+def test_rejects_translation_unit_with_unknown_block() -> None:
+    document = _document((_block(1, 1),))
+    unit = TranslationUnit(("block-missing",), 1)
+
+    with pytest.raises(ValueError, match="unknown block 'block-missing'"):
+        build_translation_unit_text(document, unit)

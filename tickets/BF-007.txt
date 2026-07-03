@@ -1,0 +1,51 @@
+# BF-007 — EPUB Import
+
+## Goal
+
+Add EPUB input support.
+
+Book Factory must read an EPUB file and convert it into the canonical Document model.
+
+---
+
+## Responsibilities
+
+Implement:
+
+- Add ebooklib as a dependency.
+- Read one .epub file.
+- Extract metadata title and author if available.
+- Extract XHTML/HTML spine items in reading order.
+- Convert each spine item into a Section.
+- Extract headings and paragraphs from each section.
+- Reuse existing HTML parsing logic where possible.
+- Preserve reading order.
+
+---
+
+## Out of Scope
+
+Do NOT implement:
+
+- EPUB export
+- Translation changes
+- Cache
+- Retry
+- Images
+- CSS preservation
+- TOC reconstruction
+- Parallelism
+
+---
+
+## Acceptance Criteria
+
+The app can ingest an EPUB and build a Document.
+
+Each EPUB spine item becomes a Section.
+
+Paragraphs are extracted in reading order.
+
+Existing HTML ingestion still works.
+
+Tests pass.

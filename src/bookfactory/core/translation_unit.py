@@ -23,6 +23,20 @@ def count_words(text: str) -> int:
     return len(text.split())
 
 
+def build_translation_unit_text(
+    document: Document, unit: TranslationUnit
+) -> str:
+    blocks_by_id = {block.block_id: block for block in document.blocks}
+    try:
+        blocks = (blocks_by_id[block_id] for block_id in unit.block_ids)
+        return "\n\n".join(block.text for block in blocks)
+    except KeyError as error:
+        missing_block_id = str(error.args[0])
+        raise ValueError(
+            f"translation unit references unknown block {missing_block_id!r}"
+        ) from error
+
+
 def _create_unit(blocks: list[Block], estimated_word_count: int) -> TranslationUnit:
     return TranslationUnit(
         block_ids=tuple(block.block_id for block in blocks),
@@ -67,4 +81,3 @@ def _should_close_before(combined: int, current: int, target: int) -> bool:
     distance_before = target - current
     distance_after = combined - target
     return distance_before <= distance_after
-
