@@ -3,6 +3,7 @@ import pytest
 from bookfactory.core.document import Block, BlockKind, Book, Document, Section
 from bookfactory.core.translation_unit import (
     TranslationUnit,
+    build_block_marker,
     build_translation_unit_text,
     count_words,
     generate_translation_units,
@@ -81,7 +82,19 @@ def test_builds_translation_text_in_unit_order() -> None:
 
     text = build_translation_unit_text(document, unit)
 
-    assert text == "word-0\n\nword-0 word-1"
+    assert text == (
+        "[[BLOCK_0001]]\nword-0\n\n"
+        "[[BLOCK_0002]]\nword-0 word-1"
+    )
+
+
+def test_builds_fixed_width_block_markers() -> None:
+    assert build_block_marker(1) == "[[BLOCK_0001]]"
+
+
+def test_rejects_non_positive_block_marker_index() -> None:
+    with pytest.raises(ValueError, match="block marker index must be positive"):
+        build_block_marker(0)
 
 
 def test_rejects_translation_unit_with_unknown_block() -> None:

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from bookfactory.core.document import Block, Document
 
 DEFAULT_TARGET_WORD_COUNT = 900
+BLOCK_MARKER_TEMPLATE = "[[BLOCK_{index:04d}]]"
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,13 +24,22 @@ def count_words(text: str) -> int:
     return len(text.split())
 
 
+def build_block_marker(index: int) -> str:
+    if index < 1:
+        raise ValueError("block marker index must be positive")
+    return BLOCK_MARKER_TEMPLATE.format(index=index)
+
+
 def build_translation_unit_text(
     document: Document, unit: TranslationUnit
 ) -> str:
     blocks_by_id = {block.block_id: block for block in document.blocks}
     try:
-        blocks = (blocks_by_id[block_id] for block_id in unit.block_ids)
-        return "\n\n".join(block.text for block in blocks)
+        blocks = tuple(blocks_by_id[block_id] for block_id in unit.block_ids)
+        return "\n\n".join(
+            f"{build_block_marker(index)}\n{block.text}"
+            for index, block in enumerate(blocks, start=1)
+        )
     except KeyError as error:
         missing_block_id = str(error.args[0])
         raise ValueError(

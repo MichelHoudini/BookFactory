@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import re
-from dataclasses import replace
+from collections.abc import Callable
+from hashlib import sha256
 from pathlib import Path
 from time import perf_counter
 
@@ -10,105 +10,151 @@ from bookfactory.adapters.epub_ingest import read_epub
 from bookfactory.adapters.openai_client import OpenAIClient
 from bookfactory.config.settings import Settings
 from bookfactory.core.document import Document
-from bookfactory.core.translation import TranslationResult, translate_document
-from bookfactory.core.translation_unit import generate_translation_units
+from bookfactory.core.llm_client import LLMClient
+from bookfactory.core.translation import (
+    ReconstructionError,
+    TranslationResult,
+    reconstruct_translated_document,
+    translate_document,
+    validate_translation_markers,
+)
+from bookfactory.core.translation_unit import (
+    TranslationUnit,
+    generate_translation_units,
+)
 from bookfactory.prompts.registry import PromptRegistry
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 INPUT_PATH = PROJECT_ROOT / "input" / "book.epub"
-OUTPUT_PATH = PROJECT_ROOT / "output" / "book_pt.epub"
-CACHE_DIRECTORY = PROJECT_ROOT / "output" / "cache"
+OUTPUT_DIRECTORY = PROJECT_ROOT / "output"
+CACHE_ROOT = PROJECT_ROOT / "output" / "cache"
 PROMPT_DIRECTORY = PROJECT_ROOT / "prompts"
+MAX_RETRIES = 3
+HASH_PREFIX_LENGTH = 16
 
 
-def reconstruct_translated_document(
+def compute_book_hash(path: Path) -> str:
+    digest = sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def cache_directory_for_book(book_hash: str) -> Path:
+    return CACHE_ROOT / book_hash[:HASH_PREFIX_LENGTH]
+
+
+def output_path_for_input(input_path: Path) -> Path:
+    return OUTPUT_DIRECTORY / f"{input_path.stem}_pt.epub"
+
+
+def translate_units_with_cache(
     document: Document,
-    results: tuple[TranslationResult, ...],
-) -> Document:
-    source_block_ids = tuple(block.block_id for block in document.blocks)
-    result_block_ids: list[str] = []
-    translated_by_id: dict[str, str] = {}
+    units: tuple[TranslationUnit, ...],
+    instructions: str,
+    client_factory: Callable[[], LLMClient],
+    cache_directory: Path,
+) -> tuple[TranslationResult, ...]:
+    client: LLMClient | None = None
+    results: list[TranslationResult] = []
+    total_units = len(units)
 
-    for result in results:
-        block_ids = result.translation_unit.block_ids
-        translated_blocks = _split_translated_text(
-            result.translated_text, len(block_ids)
-        )
-        result_block_ids.extend(block_ids)
-        translated_by_id.update(zip(block_ids, translated_blocks, strict=True))
+    for index, unit in enumerate(units, start=1):
+        cache_path = cache_directory / f"{index:04d}.txt"
+        translated_text = _load_valid_cache(cache_path, len(unit.block_ids))
+        if translated_text is not None:
+            print(f"Loading cached unit {index}/{total_units}")
+        else:
+            if client is None:
+                client = client_factory()
+            print(f"Translating unit {index}/{total_units}")
+            translated_text = _translate_with_retries(
+                document, unit, instructions, client, index
+            )
+            cache_directory.mkdir(parents=True, exist_ok=True)
+            cache_path.write_text(translated_text, encoding="utf-8", newline="")
+        results.append(TranslationResult(unit, translated_text))
 
-    if tuple(result_block_ids) != source_block_ids:
-        raise ValueError(
-            "translation results do not cover document blocks exactly in order"
-        )
-
-    sections = tuple(
-        replace(
-            section,
-            blocks=tuple(
-                replace(block, text=translated_by_id[block.block_id])
-                for block in section.blocks
-            ),
-        )
-        for section in document.book.sections
-    )
-    return replace(document, book=replace(document.book, sections=sections))
+    return tuple(results)
 
 
-def _split_translated_text(text: str, expected_blocks: int) -> tuple[str, ...]:
-    blocks = tuple(
-        block.strip() for block in re.split(r"\r?\n[ \t]*\r?\n", text.strip())
-    )
-    if len(blocks) != expected_blocks or any(not block for block in blocks):
-        raise ValueError(
-            "translated unit did not preserve the source block boundaries: "
-            f"expected {expected_blocks}, received {len(blocks)}"
-        )
-    return blocks
+def _load_valid_cache(path: Path, expected_count: int) -> str | None:
+    if not path.exists():
+        return None
+    translated_text = path.read_text(encoding="utf-8")
+    try:
+        validate_translation_markers(translated_text, expected_count)
+    except ReconstructionError:
+        path.unlink()
+        return None
+    return translated_text
+
+
+def _translate_with_retries(
+    document: Document,
+    unit: TranslationUnit,
+    instructions: str,
+    client: LLMClient,
+    unit_number: int,
+) -> str:
+    last_error: ReconstructionError | None = None
+    for _retry_count in range(MAX_RETRIES + 1):
+        translated_text = translate_document(
+            document, (unit,), instructions, client
+        )[0].translated_text
+        try:
+            validate_translation_markers(translated_text, len(unit.block_ids))
+        except ReconstructionError as error:
+            last_error = error
+            continue
+        return translated_text
+
+    assert last_error is not None
+    raise ReconstructionError(
+        f"translation unit {unit_number}: {last_error}; "
+        f"retry count: {MAX_RETRIES}"
+    ) from last_error
 
 
 def main() -> None:
     started_at = perf_counter()
+    book_hash = compute_book_hash(INPUT_PATH)
+    cache_directory = cache_directory_for_book(book_hash)
     document = read_epub(INPUT_PATH)
-    units = generate_translation_units(document)
-    if not units:
+    translation_units = tuple(generate_translation_units(document))
+    total_units = len(translation_units)
+    output_path = output_path_for_input(INPUT_PATH)
+
+    print(f"Book: {document.book.title}")
+    print(f"Input: {INPUT_PATH}")
+    print(f"Book hash: {book_hash}")
+    print(f"Translation units: {total_units}")
+    print(f"Cache directory: {cache_directory}")
+
+    if total_units == 0:
         raise RuntimeError("input document contains no translation units")
 
     instructions = PromptRegistry(PROMPT_DIRECTORY).load("translate")
-    client: OpenAIClient | None = None
-    results: list[TranslationResult] = []
+    results = translate_units_with_cache(
+        document,
+        translation_units,
+        instructions,
+        lambda: OpenAIClient(Settings.from_environment()),
+        cache_directory,
+    )
 
-    for index, unit in enumerate(units, start=1):
-        cache_path = CACHE_DIRECTORY / f"{index:04d}.txt"
-        if cache_path.exists():
-            print(f"Loading cached unit {index}/{len(units)}")
-            translated_text = cache_path.read_text(encoding="utf-8")
-        else:
-            if client is None:
-                settings = Settings.from_environment()
-                client = OpenAIClient(settings)
-
-            print(f"Translating unit {index}/{len(units)}")
-            translated_text = translate_document(
-                document, (unit,), instructions, client
-            )[0].translated_text
-            CACHE_DIRECTORY.mkdir(parents=True, exist_ok=True)
-            cache_path.write_text(translated_text, encoding="utf-8", newline="")
-
-        results.append(TranslationResult(unit, translated_text))
-
-    translated_document = reconstruct_translated_document(document, tuple(results))
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    translated_document = reconstruct_translated_document(document, results)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     write_epub(
         translated_document,
-        OUTPUT_PATH,
+        output_path,
     )
     elapsed_seconds = perf_counter() - started_at
 
     print(f"Chapters: {len(document.book.sections)}")
-    print(f"Translation units: {len(units)}")
     print(f"Elapsed time: {elapsed_seconds:.2f} seconds")
-    print(f"Output file: {OUTPUT_PATH}")
+    print(f"Output file: {output_path}")
 
 
 if __name__ == "__main__":

@@ -16,16 +16,21 @@ def _write_epub(path: Path) -> None:
 
     first = epub.EpubHtml(title="First", file_name="first.xhtml", lang="en")
     first.content = "<h1>First chapter</h1><p>First paragraph.</p>"
-    empty = epub.EpubHtml(title="Empty", file_name="empty.xhtml", lang="en")
-    empty.content = "<div>No translatable blocks</div>"
+    media = epub.EpubHtml(title="Media", file_name="media.xhtml", lang="en")
+    media.content = '<div><img src="cover.jpg"><svg><image href="cover.jpg"/></svg></div>'
+    div_based = epub.EpubHtml(title="Div", file_name="div.xhtml", lang="en")
+    div_based.content = (
+        '<div class="heading_s1s">Div chapter</div>'
+        '<div class="class_s2z">Div <span>paragraph</span>.</div>'
+    )
     second = epub.EpubHtml(title="Second", file_name="second.xhtml", lang="en")
     second.content = "<h2>Second chapter</h2><p>Second paragraph.</p>"
 
-    for chapter in (first, empty, second):
+    for chapter in (first, media, div_based, second):
         book.add_item(chapter)
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ["nav", second, empty, first]
+    book.spine = ["nav", second, media, div_based, first]
     epub.write_epub(str(path), book)
 
 
@@ -37,10 +42,12 @@ def test_reads_epub_metadata_and_spine_documents(tmp_path: Path) -> None:
 
     assert document.book.title == "Spine Order"
     assert document.book.author == "Test Author"
-    assert len(document.book.sections) == 2
+    assert len(document.book.sections) == 3
     assert [block.text for block in document.blocks] == [
         "Second chapter",
         "Second paragraph.",
+        "Div chapter",
+        "Div paragraph.",
         "First chapter",
         "First paragraph.",
     ]
@@ -49,9 +56,13 @@ def test_reads_epub_metadata_and_spine_documents(tmp_path: Path) -> None:
         "block-000002",
         "block-000003",
         "block-000004",
+        "block-000005",
+        "block-000006",
     ]
     assert document.blocks[0].kind is BlockKind.HEADING
     assert document.blocks[0].heading_level == 2
+    assert document.blocks[2].kind is BlockKind.HEADING
+    assert document.blocks[2].heading_level == 1
 
 
 def test_rejects_invalid_epub(tmp_path: Path) -> None:

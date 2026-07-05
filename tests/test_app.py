@@ -45,14 +45,16 @@ def test_translates_every_unit_and_loads_prompt_once(
     assert exit_code == 0
     registry_type.return_value.load.assert_called_once_with("translate")
     assert client_type.return_value.generate.call_args_list == [
-        call(
-            "Shared instructions",
-            "City of the Dog\n\nThe first paragraph contains inline text.",
-        ),
-        call(
-            "Shared instructions",
-            "Part One\n\nThe second paragraph follows the second heading.",
-        ),
+            call(
+                "Shared instructions",
+                "[[BLOCK_0001]]\nCity of the Dog\n\n"
+                "[[BLOCK_0002]]\nThe first paragraph contains inline text.",
+            ),
+            call(
+                "Shared instructions",
+                "[[BLOCK_0001]]\nPart One\n\n"
+                "[[BLOCK_0002]]\nThe second paragraph follows the second heading.",
+            ),
     ]
     output = capsys.readouterr().out
     assert "Unit 1:\nPrimeira tradução" in output
