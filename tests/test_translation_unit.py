@@ -81,7 +81,7 @@ def test_builds_translation_text_in_unit_order() -> None:
 
     text = build_translation_unit_text(document, unit)
 
-    assert text == "word-0\n\nword-0 word-1"
+    assert text == "[[BLOCK_0001]]\nword-0\n\n[[BLOCK_0002]]\nword-0 word-1"
 
 
 def test_rejects_translation_unit_with_unknown_block() -> None:
